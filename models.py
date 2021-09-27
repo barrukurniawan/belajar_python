@@ -30,3 +30,18 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.datetime.now())
     updated_at = db.Column(db.DateTime, default=datetime.datetime.now())
     deleted_at = db.Column(db.DateTime, nullable=True)
+
+class Products(db.Model):
+
+    __tablename__ = "products"
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    name = db.Column(db.String(50), index=True)
+    price = db.Column(db.BigInteger, default=0)
+    stock = db.Column(db.BigInteger, default=0)
+    description = db.Column(db.String(150))
+    categories = db.Column(db.String(100))
+    merchant_name = db.Column(db.String(50))
+    created_at = db.Column(db.DateTime, default=datetime.datetime.now())
+    updated_at = db.Column(db.DateTime, default=datetime.datetime.now())
+    deleted_at = db.Column(db.DateTime, nullable=True)
