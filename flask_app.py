@@ -4,9 +4,13 @@
 from flask import Flask, request, render_template
 from flask_sqlalchemy import SQLAlchemy
 from db import db, app
-from models import User
+from models import User, Products, AuthToken, AuthRefreshToken
 import datetime
 import re
+import time
+import random
+import string
+import hashlib
 
 sqldb = SQLAlchemy(app)
 # app = Flask(__name__)
@@ -189,10 +193,63 @@ def login():
                     .filter(User.password == request.json['password']).first()
 
     if check_user is not None:
+        token = __save_token(user_id=int(check_user.id))
+
         response = {
             "data": "Welcome " + str(check_user.name),
             "message": "Anda Berhasil Login",
-            "status": 'SUCCESS_LOGIN'
+            "status": 'SUCCESS_LOGIN',
+            "credentials": {
+                "access_token": token["access_token"],
+                "refresh_token": token["refresh_token"],
+                "expired_in": int(token["access_token_expired_in"])
+            }
         }
 
     return response
+
+def __save_token(user_id):
+
+    access_token = __generate_token(user_id=user_id)
+    refresh_token = __generate_token(user_id=user_id)
+
+    """ set expire time in microtime"""
+    today = datetime.datetime.today()
+    expire_in = today + datetime.timedelta(seconds=int(3600))
+    expire_in_seconds = time.mktime(expire_in.timetuple())
+
+    refresh_token_expire_in = today + datetime.timedelta(seconds=int(3600))
+    refresh_token_expire_in_seconds = time.mktime(refresh_token_expire_in.timetuple())
+
+    """ save access token """
+    at = AuthToken()
+    at.user_id = user_id
+    at.token = access_token
+    at.expire_in = expire_in_seconds
+    at.created_at = datetime.datetime.now()
+    db.session.add(at)
+    db.session.commit()
+
+    """ save refresh token """
+    rt = AuthRefreshToken()
+    rt.token = access_token
+    rt.refresh_token = refresh_token
+    rt.expire_in = refresh_token_expire_in_seconds
+    rt.created_at = datetime.datetime.now()
+    rt.updated_at = datetime.datetime.now()
+    db.session.add(rt)
+    db.session.commit()
+
+    return {
+        "access_token": access_token,
+        "access_token_expired_in": at.expire_in,
+        "refresh_token": refresh_token
+    }
+
+def __generate_token(user_id):
+
+    prepare_token = "%s%s%s%s" % (str(time.time()), str(user_id), str(random.randint(100000, 999999)),
+                                  'BARRUTAMPAN')
+    token = hashlib.sha256(bytes(prepare_token, encoding='ascii')).hexdigest()
+
+    return token

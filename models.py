@@ -45,3 +45,26 @@ class Products(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.datetime.now())
     updated_at = db.Column(db.DateTime, default=datetime.datetime.now())
     deleted_at = db.Column(db.DateTime, nullable=True)
+
+class AuthToken(db.Model):
+
+    __tablename__ = "auth_token"
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    user_id = db.Column(db.Integer, index=True)
+    token = db.Column(db.String(128), unique=True)
+    expire_in = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.now())
+
+
+class AuthRefreshToken(db.Model):
+
+    __tablename__ = "auth_refresh_token"
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    refresh_token = db.Column(db.String(128), unique=True)
+    token = db.Column(db.String(128))
+    expire_in = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.now())
+    updated_at = db.Column(db.DateTime, default=datetime.datetime.now())
+    deleted_at = db.Column(db.DateTime, nullable=True)
