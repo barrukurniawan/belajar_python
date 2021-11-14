@@ -299,7 +299,7 @@ footer a {
 <h2>Sign in/up Form for Testing</h2>
 <div class="container" id="container">
 	<div class="form-container sign-up-container">
-		<form action="#">
+		<form id="registerForm" method="post" action="">
 			<h1>Create Account</h1>
 			<div class="social-container">
 				<a href="#" class="social"><i class="fa fa-facebook"></i></a>
@@ -307,10 +307,11 @@ footer a {
 				<a href="#" class="social"><i class="fa fa-linkedin"></i></a>
 			</div>
 			<span>or use your email for registration</span>
-			<input type="text" placeholder="Name" />
-			<input type="email" placeholder="Email" />
-			<input type="password" placeholder="Password" />
-			<button>Sign Up</button>
+			<input type="text" placeholder="Name" id="name_register"/>
+			<input type="email" placeholder="Email" id="email_register"/>
+			<input type="password" placeholder="Password" id="password_register"/>
+			<!--<button>Sign Up</button>-->
+			<input type="submit" value="SIGN UP">
 		</form>
 	</div>
 	<div class="form-container sign-in-container">
@@ -407,6 +408,59 @@ $(function () {
                   icon: 'error',
                   title: 'Oops...',
                   text: 'Gagal Login!'
+                })
+            }
+        });
+
+    });
+
+    $("#registerForm").submit(function(e) {
+
+        e.preventDefault();
+
+        var dataregis = {}
+        dataregis["email"] = $('#email_register').val();
+        dataregis["password"] = $('#password_register').val();
+        dataregis["name"] = $('#name_register').val();
+
+        console.log("Register Baru Masuk : ");
+        console.log(dataregis);
+        console.log(JSON.stringify(dataregis));
+
+        $.ajax({
+            type: 'POST',
+            url: `/register`,
+            contentType: 'application/json;charset=UTF-8',
+            dataType: 'json',
+            data: JSON.stringify(dataregis),
+            processData: false,
+            success: function (data) {
+                console.log("Berhasil regis data masuk kesini");
+                console.log(data.data);
+                console.log(data.message);
+
+                if(data.status === "SUCCESS_REGISTER"){
+                    Swal.fire(
+                      data.data,
+                      data.message,
+                      'success'
+                    )
+                }else{
+                    Swal.fire({
+                      icon: 'error',
+                      title: data.data,
+                      text: data.message
+                    })
+                }
+
+            },
+            error: function(data) {
+                console.log("Gagal Regist kesini");
+                console.log(data);
+                Swal.fire({
+                  icon: 'error',
+                  title: 'Oops...',
+                  text: 'Gagal Register!'
                 })
             }
         });

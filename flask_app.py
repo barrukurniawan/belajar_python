@@ -40,7 +40,7 @@ sqldb = SQLAlchemy(app)
 def hello_world():
     return 'Hello from Flask!'
 
-@app.route('/login')
+@app.route('/daftar')
 def login_page():
     return render_template("register.html")
 
@@ -50,6 +50,14 @@ def create_message():
 
     regex_symbol = '[@_!#$%^&*()<>?/\|}{~:[\]]'
     regex = '^(\w|\.|\_|\-)+[@](\w|\_|\-|\.)+[.]\w{2,3}$'
+
+    if (request.json['password']).strip() == "" or (request.json['name']).strip() == "" or (request.json['email']).strip() == "":
+        response = {
+            "data": "Email/Username/Password tidak boleh kosong",
+            "message": "Gagal Registrasi",
+            "status": 'FAILED_REGISTER'
+        }
+        return response
 
     if(re.search(regex_symbol, request.json['name'])) or (re.search(regex_symbol, request.json['password'])):
         response = {
@@ -99,19 +107,49 @@ def create_message():
 
 @app.route('/list-user', methods=["GET"])
 def list_user():
-    customer = User.query.filter(User.deleted_at == None).all()
+    params=request.args
+
+    customer = User.query.filter(User.deleted_at == None)
+
+    current_page = 1
+    limit_per_page = 5
+    if "page" in params:
+        if (params["page"]).strip() != "":
+            current_page = int(params["page"])
+
+    if "limit" in params:
+        if (params["limit"]).strip() != "":
+            limit_per_page = int(params["limit"])
+
+    if 'username' in params:
+        if (params['username']).strip() != '':
+            customer = customer.filter(User.name.like("%{}%".format(params["username"])))
+
+    if 'email' in params:
+        if (params['email']).strip() != '':
+            customer = customer.filter(User.email.like("%{}%".format(params["email"])))
+
+    customer_paginate = customer.paginate(current_page, limit_per_page, error_out=False)
+    # customer.all()
 
     data = []
-    for x in customer:
+    for x in customer_paginate.items:
         data.append({
             "username" : x.name,
             "email" : x.email
         })
 
+    pagination = dict(
+                    limit_per_page=limit_per_page,
+                    current_page=current_page,
+                    total_data=customer.count()
+                )
+
     response = {
         "data": data,
-        "message": "list user!",
-        "status": 'SUCCESS_USER_LIST'
+        "message": "List of registered users",
+        "status": 'SUCCESS_USER_LIST',
+        "pagination": pagination,
     }
 
     return response
