@@ -68,3 +68,12 @@ class AuthRefreshToken(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.datetime.now())
     updated_at = db.Column(db.DateTime, default=datetime.datetime.now())
     deleted_at = db.Column(db.DateTime, nullable=True)
+
+class AccessAddress(db.Model):
+
+    __tablename__ = "access_address"
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    ip_address = db.Column(db.String(128), unique=True)
+    count = db.Column(db.Integer)
+    expired_at = db.Column(db.DateTime, default=datetime.datetime.now())

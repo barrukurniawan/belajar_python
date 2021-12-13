@@ -49,7 +49,7 @@ def login_page():
     return render_template("register.html")
 
 @app.route('/register', methods=["POST"])
-def create_message():
+def create_user():
     register = User()
 
     regex_symbol = '[@_!#$%^&*()<>?/\|}{~:[\]]'
@@ -64,6 +64,14 @@ def create_message():
         return response
 
     if(re.search(regex_symbol, request.json['name'])) or (re.search(regex_symbol, request.json['password'])):
+        response = {
+            "data": "Nama atau password tidak valid",
+            "message": "Tidak boleh mengandung symbol",
+            "status": 'FAILED_REGISTER'
+        }
+        return response
+
+    if "SELECT" in request.json['name'] or "SELECT" in request.json['password'] or "FROM" in request.json['name'] or "FROM" in request.json['password']:
         response = {
             "data": "Nama atau password tidak valid",
             "message": "Tidak boleh mengandung symbol",
@@ -105,6 +113,124 @@ def create_message():
         "data": "berhasil",
         "message": "created user!",
         "status": 'SUCCESS_REGISTER'
+    }
+
+    return response
+
+@app.route('/update-profile', methods=["POST"])
+def update_user():
+
+    token = __validate_token(access_token=request.headers['Authorization'])
+    if token is False:
+        response = {
+            "data": "User's not found",
+            "message": "Email atau Password Anda Salah",
+            "status": 'FAILED_LOGIN'
+        }
+        return response
+
+    regex_symbol = '[@_!#$%^&*()<>?/\|}{~:[\]]'
+
+    if (request.json['name']).strip() == "":
+        response = {
+            "data": "Email/Username/Password tidak boleh kosong",
+            "message": "Gagal Update Profile",
+            "status": 'FAILED_UPDATE_PROFILE'
+        }
+        return response
+
+    if(re.search(regex_symbol, request.json['name'])):
+        response = {
+            "data": "Nama tidak valid",
+            "message": "Tidak boleh mengandung symbol",
+            "status": 'FAILED_UPDATE_PROFILE'
+        }
+        return response
+    print (token['owner_id'])
+    check_user = User.query.filter(User.deleted_at == None) \
+                    .filter(User.id == token['owner_id']).first()
+
+    if check_user is not None:
+        check_user.name = request.json['name']
+        check_user.updated_at = datetime.datetime.now()
+
+        db.session.add(check_user)
+        db.session.commit()
+
+        response = {
+            "data": "Username Anda menjadi " + str(check_user.name),
+            "message": "Berhasil Perbarui Profile",
+            "status": 'SUCCESS_UPDATE_PROFILE'
+        }
+        return response
+
+    response = {
+        "data": "Tidak berhasil perbarui username",
+        "message": "Gagal Update Profile",
+        "status": 'FAILED_UPDATE_PROFILE'
+    }
+
+    return response
+
+@app.route('/delete-user', methods=["DELETE"])
+def delete_user():
+
+    token = __validate_token(access_token=request.headers['Authorization'])
+    if token is False:
+        response = {
+            "data": "User's not found",
+            "message": "Email atau Password Anda Salah",
+            "status": 'FAILED_LOGIN'
+        }
+        return response
+
+    regex_symbol = '[@_!#$%^&*()<>?/\|}{~:[\]]'
+
+    if (request.json['password']).strip() == "":
+        response = {
+            "data": "Email/Username/Password tidak boleh kosong",
+            "message": "Gagal Hapus Akun",
+            "status": 'FAILED_DELETE_PROFILE'
+        }
+        return response
+
+    if(re.search(regex_symbol, request.json['password'])):
+        response = {
+            "data": "Nama tidak valid",
+            "message": "Tidak boleh mengandung symbol",
+            "status": 'FAILED_DELETE_PROFILE'
+        }
+        return response
+
+    check_user = User.query.filter(User.deleted_at == None) \
+                    .filter(User.id == token['owner_id']).first()
+
+    if request.json['password'] != check_user.password:
+        response = {
+            "data": "Salah Password",
+            "message": "Gagal Hapus Akun",
+            "status": 'FAILED_DELETE_PROFILE'
+        }
+        return response
+
+    if check_user is not None:
+        user_name = check_user.name
+        check_user.deleted_at = datetime.datetime.now()
+
+        db.session.add(check_user)
+        db.session.commit()
+
+        response = {
+            "data": "Sedih melihatmu pergi " + str(user_name),
+            "message": "Berhasil Hapus User",
+            "status": 'SUCCESS_DELETE_PROFILE'
+        }
+        return response
+
+    response = {
+        "data": "Gajadi dihapus Ye Ye",
+        "message": "Gagal Hapus Akun",
+        "status": 'FAILED_DELETE_PROFILE'
     }
 
     return response
@@ -207,6 +333,28 @@ def login():
         }
 
     return response
+
+def __validate_token(access_token=None):
+    http_headers = request.headers
+
+    if access_token is None:
+        access_token = http_headers["Authorization"]
+
+    check_token = AuthToken.query.filter_by(token=access_token).first()
+    db.session.commit()
+
+    if check_token is not None:
+        today = datetime.datetime.today()
+        today_in_seconds = time.mktime(today.timetuple())
+        if int(today_in_seconds) < int(check_token.expire_in):
+            return {
+                "status": True,
+                "owner_id": check_token.user_id
+            }
+        else:
+            return False
+    else:
+        return False
 
 def __save_token(user_id):
 
